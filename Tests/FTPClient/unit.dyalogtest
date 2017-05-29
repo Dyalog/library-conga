@@ -1,0 +1,7 @@
+﻿DyalogTest : 0.1
+ID         : FtpBasicUnit
+Description: Basic unit tests for FtpClient.dyalog
+
+Setup   : setup_ftpclient_test_basic
+Teardown: teardown
+Test    : test_mirrorservice
