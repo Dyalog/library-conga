@@ -4,5 +4,5 @@
  :If 0=#.⎕NC'DRC' ⋄ 'DRC'#.⎕CY'conga' ⋄ :EndIf  ⍝ make sure conga is there...
  ⍝home←1⊃⎕NPARTS⊃(5177⌶⍬){∪((⊂⍵)≡¨1⊃¨⍺)/4⊃¨⍺}1⊃⎕si   ⍝ find source-file of current fn ()
  home←##.TESTSOURCE  ⍝ hopefully good enough...
- 'Fixed ',#.⎕FIX'file://',home,'..\..\Conga\Library\FTPClient.dyalog'
+ 'Fixed ',#.⎕FIX'file://',home,'..\..\Conga\Library\FtpClient.dyalog'
  ⎕←'setup done'
