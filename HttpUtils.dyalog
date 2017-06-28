@@ -88,6 +88,10 @@
           r←⎕THIS
         ∇
 
+        ∇ ProcessAdditionalHeaders
+          :Access public overridable
+        ∇
+
 ⍝ Common methods
 
         ∇ r←{name}AddCookie args
@@ -127,6 +131,7 @@
           chunked←∨/'chunked'⍷Headers Get'Transfer-Encoding'
           contentLength←⊃(U.toNum Headers Get'Content-Length'),¯1
           _IsComplete←chunked<contentLength<1
+          ProcessAdditionalHeaders
           r←⎕THIS
         ∇
 
@@ -288,7 +293,7 @@
           Command←U.uc Command
           (Uri HttpVersion)←U.splitFirst t
           (Uri QueryData)←'?'U.splitFirst Uri
-          QueryData←U.DecodeUrlArgs QueryData
+          QueryData←DecodeUrlArgs QueryData
           r←⎕THIS
         ∇
 
@@ -349,6 +354,11 @@
               AddCookie¨cookie←CookieSplit cookie
           :EndIf
           r←⎕THIS
+        ∇
+
+        ∇ ProcessAdditionalHeaders
+          :Access public override
+          Host←Headers Get 'host'
         ∇
 
         ∇ {r}←{baseUrl}FromHtmlRenderer args
