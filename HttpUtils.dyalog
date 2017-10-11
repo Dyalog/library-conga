@@ -1,7 +1,8 @@
 ﻿:Namespace HttpUtils
 ⍝ Description::
 ⍝ This namespace contains utilities to make it easier to manipulate and compose HTTP messages.
-⍝ It is intended to be used in conjunction with Conga v3.0's HTTP mode, and with the HTMLRenderer introduced in Dyalog v16.0
+⍝ It is intended to be used in conjunction with Conga v3.0's HTTP mode
+⍝ and with the HTMLRenderer introduced in Dyalog v16.0
 ⍝ Typical use cases include:
 ⍝   ∘ Compose an HTTP request to send to a server
 ⍝   ∘ Parse an HTTP request received using by a server
@@ -10,6 +11,25 @@
 ⍝   ∘ Parse the callback data from HTMLRenderer's onHTTPRequest event
 ⍝
 ⍝ Latest version of this file can be obtained from https://github.com/Dyalog/library-conga
+⍝
+⍝ Overview::
+⍝ HttpUtils contains two primary classes, HttpRequest and HttpResponse.
+⍝ Both are based on a base class HttpMessage, as both HTTP requests and responses
+⍝ share a common structure with some minor differences.
+⍝
+⍝ We envision 3 use cases for HttpUtils
+⍝   1) When used in the context of an HTTP client:
+⍝      - use HttpRequest to construct your HTTP request and send that to the server
+⍝      - use HttpResponse to receive the response from the server
+⍝   2) When used in the context of an HTTP server:
+⍝      - use HttpRequest to receive requests from clients
+⍝      - use HttpResponse to construct responses to send back to the clients
+⍝   3)
+⍝
+
+
+
+
 
     ⎕IO←⎕ML←1
 
@@ -358,7 +378,7 @@
 
         ∇ ProcessAdditionalHeaders
           :Access public override
-          Host←Headers Get 'host'
+          Host←Headers Get'host'
         ∇
 
         ∇ {r}←{baseUrl}FromHtmlRenderer args
@@ -500,7 +520,7 @@
           r[4]←1
           r[5 6]←HttpStatus HttpStatusText
           r[7]←⊂'text/html'{0∊⍴⍵:⍺ ⋄ ⍵}Headers Get'content-type'
-          r[9 10]←FormatHeaders Content
+          r[9 10]←FormatHeaders(U.UnicodeToHTML Content)
         ∇
 
     :endclass
@@ -688,6 +708,14 @@
       r←name data
     ∇
 
+    ∇ r←UnicodeToHTML txt;u;ucs
+    ⍝ converts chars ⎕UCS >127 to HTML safe format
+      r←,⎕FMT txt
+      u←127<ucs←⎕UCS r
+      (u/r)←(~∘' ')¨↓'G<&#ZZZ9;>'⎕FMT u/ucs
+      r←∊r
+    ∇
+
     :endsection
 
 ⍝ ────────────────────────────────────────────────────────────────────────────────
@@ -756,17 +784,19 @@
     :Section Documentation Utilities
     ⍝ these are generic utilities used for documentation
 
-    ∇ docn←ExtractDocumentationSections describeOnly;⎕IO;box;CR;sections
+    ∇ docn←ExtractDocumentationSections what;⎕IO;box;CR;sections;eis;matches
     ⍝ internal utility function
       ⎕IO←1
+      eis←{(,∘⊂∘,⍣(1=≡,⍵))⍵}
       CR←⎕UCS 13
       box←{{⍵{⎕AV[(1,⍵,1)/223 226 222],CR,⎕AV[231],⍺,⎕AV[231],CR,⎕AV[(1,⍵,1)/224 226 221]}⍴⍵}(⍵~CR),' '}
       docn←1↓⎕SRC ⎕THIS
-      docn←1↓¨docn/⍨∧\'⍝'=⊃¨docn⍝ keep all contiguous comments
+      docn←1↓¨docn/⍨∧\'⍝'=⊃¨docn ⍝ keep all contiguous comments
       docn←docn/⍨'⍝'≠⊃¨docn     ⍝ remove any lines beginning with ⍝⍝
       sections←{∨/'::'⍷⍵}¨docn
-      :If describeOnly
-          (sections docn)←((2>+\sections)∘/¨sections docn)
+      :If ~0∊⍴what
+          matches←∨⌿∨/¨(eis(819⌶what))∘.⍷(819⌶)sections/docn
+          (sections docn)←((+\sections)∊matches/⍳≢matches)∘/¨sections docn
       :EndIf
       (sections/docn)←box¨sections/docn
       docn←∊docn,¨CR
@@ -775,13 +805,22 @@
     ∇ r←Documentation
     ⍝ return full documentation
       :Access public shared
-      r←ExtractDocumentationSections 0
+      r←ExtractDocumentationSections''
     ∇
 
     ∇ r←Describe
     ⍝ return description only
       :Access public shared
-      r←ExtractDocumentationSections 1
+      r←ExtractDocumentationSections'Description::'
     ∇
+
+    ∇ r←ShowDoc what
+    ⍝ return documentation sections that contain what in their title
+    ⍝ what can be a character scalar, vector, or vector of vectors
+      :Access public shared
+      r←ExtractDocumentationSections what
+    ∇
+
     :EndSection
+
 :EndNamespace
