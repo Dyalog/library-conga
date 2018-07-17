@@ -289,13 +289,13 @@
         ⍝ args is one of:
         ⍝  character vector containing either the header or entire request
         ⍝  vector of [Command Uri Params Headers]
-        ⍝  10-element vector as returned in the HTTPRequest event of HTMLRenderer
+        ⍝  10 or 11-element vector as returned in the HTTPRequest event of HTMLRenderer
           :If 1=|≡args
               (h b)←U.(CRLF,CRLF)U.splitFirst args
               CongaHttpHeader h
               CongaHttpBody b
               _Type←''
-          :ElseIf 10=≢args ⍝ from HTMLRenderer/HTTPRequest?
+          :ElseIf 10 11∊⍨≢args ⍝ from HTMLRenderer/HTTPRequest?
               FromHtmlRenderer args
           :Else
               args←U.reifs args
@@ -474,7 +474,7 @@
               CongaHttpHeader h
               CongaHttpBody b
               _Type←''
-          :ElseIf 10=≢args ⍝ from HTMLRenderer/HTTPRequest?
+          :ElseIf 10 11∊⍨≢args ⍝ from HTMLRenderer/HTTPRequest?
               FromHtmlRenderer args
           :Else
               args←U.reifs args
