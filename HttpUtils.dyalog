@@ -29,6 +29,9 @@
 
 
 
+    ∇ r←Version
+      r←'HttpUtils' '2.0' '2018-07-16'
+    ∇
 
 
     ⎕IO←⎕ML←1
@@ -392,7 +395,7 @@
          
           :If 9≠⎕NC'HTMLRendererArgs'
               HTMLRendererArgs←⎕NS''
-              HTMLRendererArgs.(obj event op intercept scode stext mime url header content)←args
+              HTMLRendererArgs.(obj event op intercept scode stext mime url header content method)←11↑args,⊂'' ⍝ add method for v17.0
           :EndIf
          
           :If 0≠⎕NC'baseUrl'
@@ -462,10 +465,10 @@
         ⍝ args is one of:
         ⍝  character vector containing either the header or entire request
         ⍝  vector of [Command Uri Params Headers]
-        ⍝  10-element vector as returned in the HTTPRequest event of HTMLRenderer
+        ⍝  10 or 11-element vector as returned in the HTTPRequest event of HTMLRenderer
         ⍝  an instance of HttpUtils.HttpRequest that was
           :If 9.2=⎕NC⊂'args'
-              FromHtmlRenderer args.HTMLRendererArgs.(obj event op intercept scode stext mime url header content)
+              FromHtmlRenderer args.HTMLRendererArgs.(obj event op intercept scode stext mime url header content method)
           :ElseIf 1=|≡args ⍝
               (h b)←U.(CRLF,CRLF)U.splitFirst args
               CongaHttpHeader h
@@ -509,7 +512,7 @@
         ∇ r←FromHtmlRenderer args
           :Access public
           HTMLRendererArgs←⎕NS''
-          HTMLRendererArgs.(obj event op intercept scode stext mime url header content)←args
+          HTMLRendererArgs.(obj event op intercept scode stext mime url header content method)←11↑args,⊂''
         ∇
 
         ∇ r←ToHtmlRenderer
