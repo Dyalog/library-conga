@@ -1,8 +1,8 @@
-﻿:Namespace test_httpcommand
+﻿:Namespace httpcommand_test
 
     (⎕IO ⎕ML)←1 1
 
-    _httpbin←'httpbin.org'
+    _httpbin←'httpbin.org/'
     _typicode←'https://jsonplaceholder.typicode.com/'
 
     _AplVersion←2⊃⎕VFI{⍵/⍨∧\⍵≠'.'}2⊃#.⎕WG'APLVersion'

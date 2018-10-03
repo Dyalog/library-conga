@@ -1,7 +1,6 @@
 ﻿DyalogTest : 0.1
-ID         : HttpCommandBasicUnit
-Description: Basic unit tests for HttpCommand.dyalog
+ID         : HttpCommandUnit
+Description: Unit tests for HttpCommand.dyalog
 
-Setup   : setup_httpcommand_test_basic
+Setup   : setup_httpcommand_test
 Teardown: teardown
-⍝Test    : test_get
