@@ -101,7 +101,7 @@ You then use the Run method to execute the request.  For example:
    URL           - the request's URL
 ```
 ### Public Instance Methods
-```APL
+```
    result←Run            - executes the HTTP request
    name AddHeader value  - add a header value to the request headers if it doesn't already exist
 ```
