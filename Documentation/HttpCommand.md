@@ -104,14 +104,25 @@ You then use the Run method to execute the request.  For example:
 ```
    result←Run            - executes the HTTP request
    name AddHeader value  - add a header value to the request headers if it doesn't already exist
+   name SetHeader value  - set a request header, adding it if it doesn't exist,
+                           overwriting the value if it does exist
 ```
 ### Public Shared Methods
 ```APL
    result←Get URL [Params [Headers [Cert [SSLFlags [Priority]]]]]
+   - Perform an GET operation on URL
 
    result←Do  Command URL [Params [Headers [Cert [SSLFlags [Priority]]]]]
-     Where the arguments are as described in the constructor parameters section.
+   - Perform the HTTP operation specified by Command on URL
+
+   result←GetJSON Command URL [Params [Headers [Cert [SSLFlags [Priority]]]]]
+   - Perform the HTTP operation specified by Command on URL
+   - Params is converted to JSON and the response data is expected to be in
+     JSON format and then converted to APL data
+
+    Where the arguments are as described in the constructor parameters section.
      Get and Do are shortcut methods to make it easy to execute an HTTP request on the fly.
+     GetJSON is a shortcut method to access JSON-based services     Get and Do are shortcut methods to make it easy to execute an HTTP request on the fly.
 
    r←Base64Decode vec     - decode a Base64 encoded string
 
