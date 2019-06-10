@@ -12,8 +12,9 @@
 ⍝    '' means the location where the code is running (⎕CS '')
 ⍝
 ⍝ libpath is the optional path to the Conga shared library
-⍝    this would rarely be used, but it's useful in the case of trying to use a version of the library
-⍝    other than what's in the used by someone wanting to run something other than the
+⍝    this would rarely be used, but it's useful in the case of trying to use a version
+⍝    of the library other than what's in the Dyalog installation folder.
+⍝    This would be used by someone wanting to run something other than the
 ⍝    default library – e.g. someone testing newer or older library versions.
 ⍝
 ⍝ wsname is the workspace name to ⎕CY Conga from if Conga is not found in ref
@@ -37,7 +38,7 @@
 ⍝    5 - root not found
 ⍝    6 - Conga initialization failed
 ⍝
-⍝ r.msg is
+⍝ r.msg is message indicating the result or cause of failure
 ⍝
 ⍝ r.rootref is a reference to the created/found Conga.LIB instance
 ⍝
