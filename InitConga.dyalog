@@ -1,7 +1,16 @@
 ﻿ r←{protect}InitConga args;root;ref;libpath;wsname;ref∆;roots;index;found
-⍝ Initialize a Conga (3.0 or later) instance
-⍝ Version: 1.0 21-March-2019
+⍝ Description::
+⍝ InitConga is a utility to safely initialize a Conga library instance in an
+⍝ environment where other components of your application may also use Conga.
 ⍝
+⍝ N.B. requires Conga v3.0 or later
+⍝
+⍝ Version 1.0.1
+⍝
+⍝ Syntax::
+⍝      r ← {protect} InitConga {ref} {libpath} {wsname}
+⍝
+⍝ Arguments::
 ⍝ args is a list of: root {ref} {libpath} {wsname}
 ⍝
 ⍝ root is the Conga root name to look for or create.
@@ -27,6 +36,7 @@
 ⍝    2 – create the root if not found, create a new "incremented" root if it is found
 ⍝    3 – fail if the root is not found, use it if it is found
 ⍝
+⍝ Result::
 ⍝ r is a namespace containing information about the result of the operation
 ⍝
 ⍝ r.rc is the return code indicating success (0) or the reason for failure
@@ -49,6 +59,11 @@
 ⍝   ¯1 - error
 ⍝
 ⍝ r.copied indicates whether Conga was copied into the workspace
+⍝
+⍝ Example::
+⍝
+⍝ Initialize Conga with a rootname specific to your application
+⍝   DRC←(InitConga 'myApp').rootref
 
  (root ref libpath wsname)←4↑(⊆args),'' '' '' ''
 
