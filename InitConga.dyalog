@@ -24,17 +24,17 @@
 ⍝    this would rarely be used, but it's useful in the case of trying to use a version
 ⍝    of the library other than what's in the Dyalog installation folder.
 ⍝    This would be used by someone wanting to run something other than the
-⍝    default library – e.g. someone testing newer or older library versions.
+⍝    default library - e.g. someone testing newer or older library versions.
 ⍝
 ⍝ wsname is the workspace name to ⎕CY Conga from if Conga is not found in ref
 ⍝    this is also an argument only someone using a new/old version of Conga might use
 ⍝    default is 'conga'
 ⍝
 ⍝ protect is an optional integer flag indicating what to do when root is or is not found
-⍝    0 – (default) create the root if not found, use the existing root if it is found
-⍝    1 – create the root if not found, fail if it is found
-⍝    2 – create the root if not found, create a new "incremented" root if it is found
-⍝    3 – fail if the root is not found, use it if it is found
+⍝    0 - (default) create the root if not found, use the existing root if it is found
+⍝    1 - create the root if not found, fail if it is found
+⍝    2 - create the root if not found, create a new "incremented" root if it is found
+⍝    3 - fail if the root is not found, use it if it is found
 ⍝
 ⍝ Result::
 ⍝ r is a namespace containing information about the result of the operation
@@ -53,9 +53,9 @@
 ⍝ r.rootref is a reference to the created/found Conga.LIB instance
 ⍝
 ⍝ r.disposition is
-⍝    0 – root created
-⍝    1 – existing root used
-⍝    2 – incremented root created
+⍝    0 - root created
+⍝    1 - existing root used
+⍝    2 - incremented root created
 ⍝   ¯1 - error
 ⍝
 ⍝ r.copied indicates whether Conga was copied into the workspace
@@ -105,23 +105,23 @@ sel:
  r.disposition←found
 
  :Select protect
- :Case 0 ⍝    0 (default) – create the root if not found, use the existing root if it is found
+ :Case 0 ⍝    0 (default) - create the root if not found, use the existing root if it is found
      :If found
          →r.(rc msg)←0('Existing Conga root "',r.rootref.RootName,'" used')
      :EndIf
 
- :Case 1 ⍝    1 – create the root if not found, fail if it is found
+ :Case 1 ⍝    1 - create the root if not found, fail if it is found
      :If found
          →0⊣r.(rc disposition rootref msg)←4 ¯1 ⍬('Conga root "',r.rootref.RootName,' already exists')
      :EndIf
 
- :Case 2 ⍝    2 – create the root if not found, create a new "incremented" root if it is found
+ :Case 2 ⍝    2 - create the root if not found, create a new "incremented" root if it is found
      :If found ⍝ Increment root
          root,←,'ZI4'⎕FMT 1+⌈/∊0,2⊃¨⎕VFI¨(≢root)↓¨root{⍵/⍨⊃¨⍺∘⍷¨⍵}roots.RootName
          r.disposition←2
      :EndIf
 
- :Case 3 ⍝    3 – fail if the root is not found, use it if it is found
+ :Case 3 ⍝    3 - fail if the root is not found, use it if it is found
      :If ~found
          →0⊣r.(rc msg)←5('Conga root "',root,'" not found')
      :EndIf
