@@ -1,0 +1,7 @@
+﻿DyalogTest : 0.1
+ID         : HttpUtilsBasicUnit
+Description: Basic unit tests for HttpUtils.dyalog
+
+Setup   : setup_httpcommand_test_basic
+Teardown: teardown
+⍝Test    : test_get
