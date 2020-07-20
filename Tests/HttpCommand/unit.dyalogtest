@@ -4,4 +4,4 @@ Description: Unit tests for HttpCommand.dyalog
 
 Setup   : setup_httpcommand_test
 Teardown: teardown
-Test    : test_*
+Test    : test_.*
