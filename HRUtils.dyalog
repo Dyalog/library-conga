@@ -13,6 +13,11 @@
 
     ⎕IO←⎕ML←1
 
+    ∇ r←Request args
+    ⍝ args is the event message from HTTPRequest event
+      r←⎕NEW HttpRequest args
+    ∇
+
 ⍝ ────────────────────────────────────────────────────────────────────────────────
 
     :class HttpRequest
@@ -200,11 +205,6 @@
           value←(table[;1](⍳⍥⎕C)⊂name)⊃table[;2],⊂''
         ∇
 
-        ∇ values←GetAllHeaders name
-          :Access public
-          values←Headers[;2]/⍨Headers[;1]((≡¨)⍥⎕C)⊂name
-        ∇
-
         ∇ name AddHeader value
         ⍝ add a header unless it's already defined
           :Access public
@@ -301,16 +301,27 @@
 
 ⍝ ────────────────────────────────────────────────────────────────────────────────
 
-    :section HTTP Request Utilities
+    :Class WebSocket
+        ∇ make args
+          :Access public
+          :Implements constructor
 
-    APLVersion←⊃(//)⎕VFI {⍵/⍨2>+\'.'=⍵}2⊃'.'⎕WG'APLVersion'
+        ∇   
+
+    :EndClass
+
+⍝ ────────────────────────────────────────────────────────────────────────────────
+
+    :Section HTTP Request Utilities
+
+    APLVersion←⊃(//)⎕VFI{⍵/⍨2>+\'.'=⍵}2⊃'.'⎕WG'APLVersion'
     begins←{⍺≡(⍴⍺)↑⍵}                        ⍝ 'Dya' begins 'Dyalog'
-    lc←(819⌶)                                ⍝ lower case
-    uc←1∘(819⌶)                              ⍝ upper case
+    lc←⎕C                                ⍝ lower case
+    uc←1∘⎕C                              ⍝ upper case
     splitFirst←{⍺←' ' ⋄ i←(⍺⍷⍵)⍳1 ⋄ ((i-1)↑⍵)((i+(≢⍺)-1)↓⍵)} ⍝ '?' splitFirst 'abc?def?ghi' → 'abc' 'def?ghi'
     dlb←{⍵↓⍨+/∧\⍵=' '}                       ⍝ delete leading blanks
     deb←{1↓¯1↓{⍵/⍨~'  '⍷⍵}' ',⍵,' '}         ⍝ delete extraneous blanks
-    toNum←{0∊⍴⍵:⍬ ⋄ 1⊃2⊃⎕VFI ⍕⍵}             ⍝ simple char to num
+    toNum←{0∊⍴⍵:⍬ ⋄ 1⊃2⊃⎕VFI⍕⍵}             ⍝ simple char to num
     toHex←{⎕IO←0 ⋄ '0123456789ABCDEF'[⍵⊤⍨16⍴⍨{⌈⍵+0=1|⍵}16⍟⍵]}
     quote←{'"'=1↑⍵:⍵ ⋄ '"',⍵,'"'}                                             ⍝ double quote ⍵ if not already so
     reifs←{{2::(,∘⊂)⍣2>|≡⍵ ⋄ ,⊆⍵},⍵}                                          ⍝ ravel and enclose if simple
