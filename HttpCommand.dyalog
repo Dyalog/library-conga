@@ -221,7 +221,7 @@
 
     ∇ r←Version
       :Access public shared
-      r←'HttpCommand' '3.3' '2021-02-25'
+      r←'HttpCommand' '3.4' '2021-05-28'
     ∇
 
     ∇ make
@@ -293,7 +293,7 @@
       :If 0∊⍴cmd.Command ⋄ cmd.Command←(1+0∊⍴cmd.Params)⊃'POST' 'GET' ⋄ :EndIf
       :If ~0∊⍴cmd.Params
           :Trap 0
-              cmd.Params←1 ⎕JSON cmd.Params
+              cmd.Params←SafeJSON 1 ⎕JSON cmd.Params
           :Else
               r←cmd.Result
               r.(rc msg)←¯1 'Could not convert parameters to JSON format'
@@ -552,6 +552,7 @@
                   :If ~simpleChar ⍝ if it's a simple charvec, assume it's already JSON format
                       parms←1 ⎕JSON parms
                   :EndIf
+                  parms←SafeJSON parms
               :EndSelect
               :If ~SuppressHeaders
                   hdrs←'Content-Length'(hdrs addHeader)⍴parms
@@ -684,7 +685,7 @@
                       :If MaxRedirections<.=¯1,≢r.Redirections
                           r.msg←'Too many redirections (',(⍕MaxRedirections),')'
                           r.rc←¯1
-                          →∆END 
+                          →∆END
                       :Else
                           url←header Lookup'location' ⍝ use the "location" header field for the URL
                           :If ~0∊⍴url
@@ -875,6 +876,15 @@
           m←(⍴r)⍴1 ⋄ m[(,j),i~fill]←0
           r←m/r
       :EndIf
+    ∇
+
+    ∇ w←SafeJSON w;i;c;⎕IO
+    ⍝ Convert Unicode chars to \uXXXX
+      :Access public shared
+      ⎕IO←0
+      →0⍴⍨0∊i←⍸127<c←⎕UCS w
+      w[i]←{⊂'\u','0123456789ABCDEF'[¯4↑16⊥⍣¯1⊢⍵]}¨c[i]
+      w←∊w
     ∇
 
     :Section Documentation Utilities
