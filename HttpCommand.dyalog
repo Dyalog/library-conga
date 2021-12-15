@@ -48,7 +48,7 @@
     ∇ r←Version
     ⍝ Return the current version
       :Access public shared
-      r←'HttpCommand' '4.0' '2021-10-31'
+      r←'HttpCommand' '4.0.1' '2021-12-15'
     ∇
 
     ∇ make
@@ -1040,7 +1040,7 @@
       z←Get url
       :If z.rc≠0
           r←z.(rc msg)
-      :ElseIf (z.HttpStatus=404)∧
+      :ElseIf (z.HttpStatus=404)∧repository≡'HttpCommand'
           repository←'library-conga'
           →∆TRY
       :ElseIf z.HttpStatus≠200
