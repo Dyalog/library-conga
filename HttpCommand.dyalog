@@ -48,7 +48,7 @@
     ∇ r←Version
     ⍝ Return the current version
       :Access public shared
-      r←'HttpCommand' '4.0.1' '2021-12-15'
+      r←'HttpCommand' '4.0.2' '2021-12-16'
     ∇
 
     ∇ make
@@ -331,8 +331,8 @@
     ⍝ Do some cursory parameter checking
       →∆END↓⍨0∊⍴r.msg←'No URL specified'/⍨0∊⍴url ⍝ exit early if no URL
       →∆END↓⍨0∊⍴r.msg←'URL is not a simple character vector'/⍨~isSimpleChar url
-      →∆END↓⍨0∊⍴r.msg←'Headers are not character'/⍨~(0∊⍴hdrs)∨⍥(1∘↑)isChar hdrs
-      →∆END↓⍨0∊⍴r.msg←'Cookies are not character'/⍨~(0∊⍴hdrs)∨⍥(1∘↑)isChar cookies
+      →∆END↓⍨0∊⍴r.msg←'Headers are not character'/⍨(0∊⍴hdrs)⍱isChar hdrs
+      →∆END↓⍨0∊⍴r.msg←'Cookies are not character'/⍨(0∊⍴cookies)⍱isChar cookies
       hdrs←{0::¯1 ⋄ 0∊t←⍴⍵:0 2⍴⊂'' ⋄ 3=|≡⍵:↑eis∘,¨⍵ ⋄ 2=≢t:⍵ ⋄ ((0.5×t),2)⍴⍵}hdrs
       →∆END↓⍨0∊⍴msg←'Improper header format'/⍨¯1≡hdrs
      
@@ -652,7 +652,8 @@
               :Case 'HTTPChunk'
                   :If 1=≡dat ⋄ →∆END⊣r.(Data msg)←dat'Conga failed to parse the response HTTP chunk' ⍝ HTTP chunk parsing failed?
                   :ElseIf toFile ⋄ (1⊃dat)⎕NAPPEND outTn
-                  :ElseIf Stream
+                  :ElseIf Stream 
+                  ⍝!!! Insert _streamFn here
                   :Else ⋄ data,←1⊃dat
                   :EndIf
               :Case 'HTTPTrailer'
