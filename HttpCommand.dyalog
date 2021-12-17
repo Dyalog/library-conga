@@ -48,7 +48,7 @@
     ∇ r←Version
     ⍝ Return the current version
       :Access public shared
-      r←'HttpCommand' '4.0.2' '2021-12-16'
+      r←'HttpCommand' '4.0.3' '2021-12-17'
     ∇
 
     ∇ make
@@ -331,8 +331,8 @@
     ⍝ Do some cursory parameter checking
       →∆END↓⍨0∊⍴r.msg←'No URL specified'/⍨0∊⍴url ⍝ exit early if no URL
       →∆END↓⍨0∊⍴r.msg←'URL is not a simple character vector'/⍨~isSimpleChar url
-      →∆END↓⍨0∊⍴r.msg←'Headers are not character'/⍨(0∊⍴hdrs)⍱isChar hdrs
-      →∆END↓⍨0∊⍴r.msg←'Cookies are not character'/⍨(0∊⍴cookies)⍱isChar cookies
+      →∆END↓⍨0∊⍴r.msg←'Headers are not character'/⍨(0∊⍴hdrs)⍱1↑isChar hdrs
+      →∆END↓⍨0∊⍴r.msg←'Cookies are not character'/⍨(0∊⍴cookies)⍱1↑isChar cookies
       hdrs←{0::¯1 ⋄ 0∊t←⍴⍵:0 2⍴⊂'' ⋄ 3=|≡⍵:↑eis∘,¨⍵ ⋄ 2=≢t:⍵ ⋄ ((0.5×t),2)⍴⍵}hdrs
       →∆END↓⍨0∊⍴msg←'Improper header format'/⍨¯1≡hdrs
      
