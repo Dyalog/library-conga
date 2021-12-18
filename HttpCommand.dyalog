@@ -176,7 +176,7 @@
           :EndTrap
       :EndIf
       r←cmd.Run
-      →requestOnly⍴∆EXIT
+      →cmd.RequestOnly⍴∆EXIT
      
       :If r.rc=0
           →∆DONE⍴⍨204=r.HttpStatus ⍝ exit if "no content" HTTP status
