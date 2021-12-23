@@ -48,7 +48,7 @@
     ∇ r←Version
     ⍝ Return the current version
       :Access public shared
-      r←'HttpCommand' '4.0.3' '2021-12-17'
+      r←'HttpCommand' '4.0.4' '2021-12-17'
     ∇
 
     ∇ make
@@ -196,6 +196,34 @@
      ∆DONE: ⍝ reset ⎕DF if messages have changed
       setDisplayFormat r
      ∆EXIT:
+    ∇
+
+
+    ∇ r←{ro}Fix args;z;url;target
+    ⍝ retrieve and fix APL code loads the latest version from GitHub
+    ⍝ example: HttpCommand.Fix 'github/dyalog/httpcommand/httpcommand.dyalog'
+      :Access public shared
+      (url target)←2↑(,⊆args),##
+      :If 0=⎕NC'ro' ⋄ ro←0 ⋄ :EndIf
+      r←z←ro Get{ ⍝ convert url if necessary
+          ~∨/'github'⍷⍵:⍵ ⍝ if not github just
+          ∨/'raw.githubusercontent.com'⍷⍵:⍵ ⍝ already refers to
+          t←'/'(≠⊆⊢)⍵
+          i←⍸<\∨/¨'github'∘⍷¨t
+          'https://raw.githubusercontent.com',∊'/',¨(2↑i↓t),(⊂'master'),(2+i)↓t
+      }url
+      →ro⍴0
+      :If z.rc≠0
+          r←z.(rc msg)
+      :ElseIf z.HttpStatus≠200
+          r←¯1(⍕z)
+      :Else
+          :Trap 0
+              r←0(⍕target{0::⍺.⎕FX ⍵ ⋄ ⍺.⎕FIX ⍵}{⍵⊆⍨~⍵∊⎕UCS 13 10 65279}z.Data)
+          :Else
+              r←¯1('Could not ⎕FIX file: ',2↓∊': '∘,¨⎕DMX.(EM Message))
+          :EndTrap
+      :EndIf
     ∇
 
     ∇ r←Init r;ref;root;nc;n;ns;congaCopied;class;path
@@ -652,7 +680,7 @@
               :Case 'HTTPChunk'
                   :If 1=≡dat ⋄ →∆END⊣r.(Data msg)←dat'Conga failed to parse the response HTTP chunk' ⍝ HTTP chunk parsing failed?
                   :ElseIf toFile ⋄ (1⊃dat)⎕NAPPEND outTn
-                  :ElseIf Stream 
+                  :ElseIf Stream
                   ⍝!!! Insert _streamFn here
                   :Else ⋄ data,←1⊃dat
                   :EndIf
