@@ -37,18 +37,19 @@
 ⍝ Streaming-related fields
     :field public Stream←0                         ⍝ set to 1 to stream in a separate thread
     :field public StreamFn←''                      ⍝ function name to call when streaming
-    :field public StreamLimit←0                    ⍝ if negative - number of seconds to stream, if positive - number of bytes to stream
+    :field public StreamLimit←0                    ⍝ if negative - number of seconds to stream, if positive - number of bytes to stream, if 0 - no limit
 
     :field public readonly shared ValidFormUrlEncodedChars←'&=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~*+~%'
 
     :field Client←''                               ⍝ Conga client ID
     :field CongaVersion←''                         ⍝ Conga version
-    :field HostPortSecure←''                       ⍝ when a client is made, its host, port and secure settings are saved so that if either changes, we close the previous client
+    :field ConxProps←''                            ⍝ when a client is made, its connection properties are saved so that if either changes, we close the previous client
+    :field origCert←¯1                             ⍝ used to check if Cert changed between calls
 
     ∇ r←Version
     ⍝ Return the current version
       :Access public shared
-      r←'HttpCommand' '4.0.4' '2021-12-17'
+      r←'HttpCommand' '4.0.6' '2022-03-17'
     ∇
 
     ∇ make
@@ -112,7 +113,7 @@
           rc←'rc: ',⍕r.rc
           msg←' | msg: ',⍕r.msg
           stat←' | HTTP Status: ',(⍕r.HttpStatus),' "',r.HttpMessage,'"'
-          data←' | ',{¯1≠r.BytesWritten:(⍕r.BytesWritten),' written to ',r.OutFile ⋄ ⍬≡⍵:'⍴Data: ⍬' ⋄ '⍴Data: ',⍕⍵}⍴r.Data
+          data←' | ',{¯1≠r.BytesWritten:(⍕r.BytesWritten),' bytes written to ',r.OutFile ⋄ ⍬≡⍵:'⍴Data: ⍬' ⋄ '⍴Data: ',⍕⍵}⍴r.Data
           r.⎕DF 1⌽'][',rc,msg,stat,data
       :EndIf
     ∇
@@ -164,12 +165,11 @@
       :If 0=⎕NC'requestOnly' ⋄ requestOnly←¯1 ⋄ :EndIf
      
       →∆EXIT⍴⍨9.1=nameClass cmd←requestOnly New args
-      cmd.ContentType←'application/json;charset=utf-8'
-     
+      :If 0∊⍴cmd.ContentType ⋄ cmd.ContentType←'application/json;charset=utf-8' ⋄ :EndIf
       :If 0∊⍴cmd.Command ⋄ cmd.Command←(1+0∊⍴cmd.Params)⊃'POST' 'GET' ⋄ :EndIf
       :If ~0∊⍴cmd.Params
           :Trap Debug↓0
-              cmd.Params←SafeJSON 1 ⎕JSON cmd.Params
+              cmd.Params←JSONexport cmd.Params
           :Else
               r←cmd.Result
               →∆DONE⊣r.(rc msg)←¯1 'Could not convert parameters to JSON format'
@@ -184,7 +184,7 @@
               :If ¯1=r.BytesWritten ⍝ if not writing to file
                   :If ∨/'application/json'⍷lc r.Headers Lookup'content-type'
                       :Trap Debug↓0
-                          r.Data←⎕JSON r.Data
+                          r.Data←0 ⎕JSON r.Data
                       :Else ⋄ →∆DONE⊣r.(rc msg)←1 'Could not convert response payload to JSON format'
                       :EndTrap
                   :Else ⋄ →∆DONE⊣r.(rc msg)←2 'Response content-type is not application/json'
@@ -201,7 +201,10 @@
 
     ∇ r←{ro}Fix args;z;url;target
     ⍝ retrieve and fix APL code loads the latest version from GitHub
-    ⍝ example: HttpCommand.Fix 'github/dyalog/httpcommand/httpcommand.dyalog'
+    ⍝ args is:
+    ⍝  [1] URL of code to fix - if the URL has 'github' (but not 'raw.githubusercontent.com') in it, we do some gratuitous massaging
+    ⍝  [2] (optional) reference to namespace in which to fix the code (default ##)
+    ⍝ example: HttpCommand.Fix 'github/Dyalog/Jarvis/Source/Jarvis.dyalog' #.
       :Access public shared
       (url target)←2↑(,⊆args),##
       :If 0=⎕NC'ro' ⋄ ro←0 ⋄ :EndIf
@@ -253,7 +256,7 @@
                           :For path :In (1+0∊⍴CongaPath)⊃(⊂CongaPath)((dyalogRoot,'ws/')'') ⍝ if CongaPath specifiec, use it exclusively
                               :Trap Debug↓0
                                   n class.⎕CY path,'conga'
-                                  LDRC←ResolveCongaRef class⍎n
+                                  LDRC←ResolveCongaRef(class⍎n)
                                   →∆END↓⍨0∊⍴r.msg←(''≡LDRC)/n,' was copied from [DYALOG]/ws/conga, but is not valid'
                                   →∆COPIED⊣congaCopied←1
                               :EndTrap
@@ -338,7 +341,7 @@
      ∆FAIL:(rc secureParams)←¯1 msg ⍝ failure
     ∇
 
-    ∇ r←certs(cmd HttpCmd)args;url;parms;hdrs;urlparms;p;b;secure;port;host;path;auth;req;err;chunked;done;data;datalen;header;headerlen;rc;donetime;ind;len;obj;evt;dat;z;contentType;msg;timedOut;certfile;keyfile;secureParams;simpleChar;defaultPort;cookies;domain;t;replace;outFile;toFile;startSize;options;congaPath;progress;starttime;outTn
+    ∇ r←certs(cmd HttpCmd)args;url;parms;hdrs;urlparms;p;b;secure;port;host;path;auth;req;err;chunked;done;data;datalen;header;headerlen;rc;donetime;ind;len;obj;evt;dat;z;contentType;msg;timedOut;certfile;keyfile;simpleChar;defaultPort;cookies;domain;t;replace;outFile;toFile;startSize;options;congaPath;progress;starttime;outTn;secureParams
     ⍝ issue an HTTP command
     ⍝ certs - X509Cert|(PublicCertFile PrivateKeyFile) SSLValidation Priority PublicCertFile PrivateKeyFile
     ⍝ args  - [1] URL in format [HTTP[S]://][user:pass@]url[:port][/path[?query_string]]
@@ -362,7 +365,7 @@
       →∆END↓⍨0∊⍴r.msg←'Headers are not character'/⍨(0∊⍴hdrs)⍱1↑isChar hdrs
       →∆END↓⍨0∊⍴r.msg←'Cookies are not character'/⍨(0∊⍴cookies)⍱1↑isChar cookies
       hdrs←{0::¯1 ⋄ 0∊t←⍴⍵:0 2⍴⊂'' ⋄ 3=|≡⍵:↑eis∘,¨⍵ ⋄ 2=≢t:⍵ ⋄ ((0.5×t),2)⍴⍵}hdrs
-      →∆END↓⍨0∊⍴msg←'Improper header format'/⍨¯1≡hdrs
+      →∆END↓⍨0∊⍴r.msg←'Improper header format'/⍨¯1≡hdrs
      
       :If Stream
           :If ''≡StreamFn
@@ -371,7 +374,6 @@
               →∆END↓⍨0∊⍴r.msg←'StreamFn is not a function'/⍨3≠⎕NC StreamFn
               _streamFn←⍎StreamFn
           :EndIf
-          StreamBy
       :EndIf
      
       :If ~RequestOnly  ⍝ don't bother initializing Conga if only returning request
@@ -389,13 +391,6 @@
      ∆GET:
      
       (secure host path urlparms)←parseURL r.URL←url
-      secure∨←⍲/{0∊⍴⍵}¨certs[1 4] ⍝ we're secure if URL begins with https/wss (checked by parseURL), or we have a cert or a PublicCertFile
-      secureParams←''
-      :If secure>RequestOnly ⍝ don't bother generating certificate if only returning request
-          :If 0≠⊃(rc secureParams)←CreateSecureParams certs
-              →∆END⊣r.msg←secureParams
-          :EndIf
-      :EndIf
      
       auth←''
       :If '@'∊host ⍝ Handle user:password@host...
@@ -413,8 +408,6 @@
       :If 0∊⍴host ⋄ →∆END⊣r.msg←'No host specified' ⋄ :EndIf
      
       :If ~(port>0)∧(port≤65535)∧port=⌊port ⋄ →∆END⊣r.msg←'Invalid port - ',⍕port ⋄ :EndIf
-     
-      r.(Secure Host Port Path)←secure(lc host)port({{'/',¯1↓⍵/⍨⌽∨\'/'=⌽⍵}⍵↓⍨'/'=⊃⍵}path)
      
       hdrs←makeHeaders hdrs
       :If ~SuppressHeaders
@@ -449,14 +442,16 @@
               simpleChar←{1<≢⍴⍵:0 ⋄ (⎕DR ⍵)∊80 82}parms
               :Select ⊃';'(≠⊆⊢)contentType
               :Case 'application/x-www-form-urlencoded'
-                  :If ~simpleChar ⍝ if simple character, parms is assumed to already be
-                  :OrIf ~∧/parms∊ValidFormUrlEncodedChars
-                      parms←UrlEncode parms
+                  :If ~simpleChar ⍝ if not simple character...
+                  :OrIf ~∧/parms∊ValidFormUrlEncodedChars ⍝ or not valid URL-encoded
+                      parms←UrlEncode parms ⍝ encode it
                   :EndIf
               :Case 'application/json'
-                  :If ~isJSON parms ⍝ if it's a simple charvec, assume it's already JSON format
-                      parms←SafeJSON 1 ⎕JSON parms
+                  :If ~isJSON parms ⍝ if it's not already JSON
+                      parms←JSONexport parms ⍝ JSONify it
                   :EndIf
+              :Else
+                  parms←∊⍕parms
               :EndSelect
               :If RequestOnly>SuppressHeaders ⍝ Conga supplies content-length, but for RequestOnly we need to insert it
                   hdrs←'Content-Length'(hdrs addHeader)⍴parms
@@ -493,17 +488,35 @@
           :Else
               →∆END⊣r.msg←⎕DMX.EM,' while trying to initialize output file ''',(⍕outFile),''''
           :EndTrap
-     
       :EndIf
      
-      :If ~0∊⍴Client                    ⍝ do we have a client already?
-      :AndIf HostPortSecure≢r.(Host Port Secure) ⍝ did we change host or secure?
-          {}{0::'' ⋄ LDRC.Close ⍵}Client     ⍝ if so, close the client
-          HostPortSecure←r.(Host Port Secure)    ⍝ and capture the new settings
-          Client←''
+      secure∨←⍲/{0∊⍴⍵}¨certs[1 4] ⍝ we're secure if URL begins with https/wss (checked by parseURL), or we have a cert or a PublicCertFile
+     
+      :If secure
+          :If 0≠⊃(rc secureParams)←CreateSecureParams certs
+              →∆END⊣r.msg←secureParams
+          :EndIf
+      :Else
+          secureParams←''
       :EndIf
+     
+      r.(Secure Host Port Path)←secure(lc host)port({{'/',¯1↓⍵/⍨⌽∨\'/'=⌽⍵}⍵↓⍨'/'=⊃⍵}path)
      
       stopIf Debug=2
+     
+      :If ~0∊⍴Client                    ⍝ do we have a client already?
+          :If 0∊⍴ConxProps              ⍝ should never happen (have a client but no connection properties)
+              Client←''                 ⍝ reset client
+          :ElseIf ConxProps.(Host Port Secure certs)≢r.(Host Port Secure),⊂certs ⍝ something's changed, reset
+          ⍝ don't set message for same domain
+              r.msg←(ConxProps.Host≢⍥{lc ¯2↑'.'(≠⊆⊢)⍵}r.Host)/'Connection properties changed, connection reset'
+              {}{0::'' ⋄ LDRC.Close ⍵}Client
+              Client←ConxProps←''
+          :ElseIf 'Timeout'≢3⊃LDRC.Wait Client 0 ⍝ nothing changed, make sure client is alive
+              Client←ConxProps←'' ⍝ connection dropped, reset
+              r.msg←'Connection reset'
+          :EndIf
+      :EndIf
      
       :If 0∊⍴Client
           options←''
@@ -519,6 +532,9 @@
               {}LDRC.SetProp Client'DecodeBuffers' 15 ⍝ set to decode HTTP messages
           :EndIf
       :EndIf
+     
+      (ConxProps←⎕NS'').(Host Port Secure certs)←r.(Host Port Secure),⊂certs ⍝ preserve connection settings for subsequent calls
+     
       starttime←⎕AI[3]
       donetime←⌊starttime+1000×|WaitTime ⍝ time after which we'll time out
      
@@ -561,8 +577,9 @@
                           done←1
                       :Case 'HTTPChunk'
                           :If 1=≡dat ⋄ →∆END⊣r.(Data msg)←dat'Conga failed to parse the response HTTP chunk' ⍝ HTTP chunk parsing failed?
-                          :ElseIf toFile ⋄ (1⊃dat)⎕NAPPEND outTn
-                          :ElseIf Stream
+                          :ElseIf toFile∨Stream  ⍝ permit both writing to file and streaming
+                              :If toFile ⋄ (1⊃dat)⎕NAPPEND outTn ⋄ :EndIf
+                              :If Stream ⋄ _streamFn 1⊃dat ⋄ :EndIf
                           :Else ⋄ data,←1⊃dat
                           :EndIf
                       :Case 'HTTPTrailer'
@@ -704,8 +721,8 @@
       :EndTrap
     ∇
 
-
     ∇ (timedOut donetime progress)←obj checkTimeOut(donetime progress);tmp;snap
+    ⍝!!!
     ⍝ check if request has timed out
     ⍝ if
       →∆EXIT↓⍨timedOut←⎕AI[3]>donetime
@@ -749,15 +766,23 @@
     isJSON←{~0 2∊⍨10|⎕DR ⍵:0 ⋄ ~(⊃⍵)∊'-{["',⎕D:0 ⋄ {0::0 ⋄1⊣0 ⎕JSON ⍵}⍵} ⍝ test for JSONableness fails on APL that looks like JSON (e.g. '"abc"')
     stopIf←{1∊⍵:-⎕TRAP←0 'C' '⎕←''Stopped for debugging... (Press Ctrl-Enter)''' ⋄ shy←0} ⍝ faster alternative to setting ⎕STOP
 
+    ∇ r←JSONexport data
+      :Trap 11
+          r←SafeJSON 1 ⎕JSON data ⍝ attempt to export
+      :Else
+          r←SafeJSON(1 ⎕JSON⍠'HighRank' 'Split')data ⍝ Dyalog v18.0 and later
+      :EndTrap
+    ∇
+
+
 
     ∇ r←dyalogRoot
-      :Access Public Shared
+    ⍝ return path to interpreter
       r←{⍵,('/\'∊⍨⊢/⍵)↓'/'}{0∊⍴t←2 ⎕NQ'.' 'GetEnvironment' 'DYALOG':⊃1 ⎕NPARTS⊃2 ⎕NQ'.' 'GetCommandLineArgs' ⋄ t}''
     ∇
 
     ∇ (secure host path urlparms)←parseURL url;path;p
-      :Access Public Shared
-    ⍝ parses a URL and returns
+    ⍝ Parses a URL and returns
     ⍝   secure - Boolean whether running HTTPS or not based on leading http://
     ⍝   host - domain or IP address
     ⍝   path - path on the host for the requested resource, if any
@@ -775,7 +800,6 @@
     ⍝ returns Extended IDN format
     ⍝ this function does almost no validation of its input, we expect a properly formatted date
     ⍝ ill-formatted dates return ⍬
-      :Access public shared
       :Trap 0
           d←{⍵⊆⍨⍵∊⎕A,⎕D}uc date
           r←1 0 1 1 1 1\toInt¨d[4 2 5 6 7]
@@ -788,27 +812,31 @@
 
     ∇ idn←TStoIDN ts
     ⍝ Convert timestamp to extended IDN format
-      :Access public shared
-      idn←(2 ⎕NQ'.' 'DateToIDN'(3↑ts))+(24 60 60 1000⊥4↑3↓ts)÷86400000
+      :Trap 2 ⍝ syntax error if pre-v18.0
+          idn←¯1 1 ⎕DT⊂ts
+      :Else
+          idn←(2 ⎕NQ'.' 'DateToIDN'(3↑ts))+(24 60 60 1000⊥4↑3↓ts)÷86400000
+      :EndTrap
     ∇
 
     ∇ ts←IDNtoTS idn
     ⍝ Convert extended IDN to timestamp
-      :Access public shared
-      ts←3↑2 ⎕NQ'.' 'IDNToDate'(⌊idn)
-      ts,←⌊0.5+24 60 60 1000⊤86400000×1|⍬⍴idn
+      :Trap 2 ⍝ syntax error if pre-v18.0
+          ts←⊃1 ¯1 ⎕DT idn
+      :Else
+          ts←3↑2 ⎕NQ'.' 'IDNToDate'(⌊idn)
+          ts,←⌊0.5+24 60 60 1000⊤86400000×1|⍬⍴idn
+      :EndTrap
     ∇
 
     ∇ idn←Now
     ⍝ Return extended IDN for current time
-      :Access public shared
       idn←TStoIDN ⎕TS
     ∇
 
     ∇ cookies←parseCookies(headers host path);cookie;segs;setcookie;seg;value;name;domain
     ⍝ Parses set-cookie headers into cookie array
     ⍝ Attempts to follow RFC6265 https://datatracker.ietf.org/doc/html/rfc6265
-      :Access public shared ⍝ remove this after testing!!!
       cookies←⍬
       :For setcookie :In headers tableGet'set-cookie'
           segs←dltb¨¨2↑¨'='splitOnFirst⍨¨dltb¨setcookie splitOn';'
@@ -865,7 +893,6 @@
 
     ∇ cookies←cookies updateCookies new;cookie;ind
     ⍝ update internal cookies based on result of ParseCookies
-      :Access public shared
       :If 0∊⍴cookies
           cookies←new
       :Else
@@ -888,7 +915,6 @@
 
     ∇ r←state applyCookies cookies;mask
     ⍝ return which cookies to send based on current request and
-      :Access public shared
       r←⍬
       →0⍴⍨0∊⍴mask←1⍴⍨≢cookies ⍝ exit if no cookies
       →0↓⍨∨/mask∧←cookies.Secure≤state.Secure ⍝ HTTPS only filter
@@ -904,7 +930,6 @@
 
     ∇ r←table Lookup name
     ⍝ lookup a name/value-table value by name, return '∘???∘' if not found
-      :Access Public Shared
       r←table{(⍺[;2],⊂'∘???∘')⊃⍨⍺[;1](⍳ci)eis ⍵}name
     ∇
 
@@ -933,7 +958,6 @@
 
     ∇ r←{a}eis w;f
     ⍝ enclose if simple
-      :Access public shared
       f←{⍺←1 ⋄ ,(⊂⍣(⍺=|≡⍵))⍵}
       :If 0=⎕NC'a' ⋄ r←f w
       :Else ⋄ r←a f w
@@ -1047,7 +1071,6 @@
 
     ∇ w←SafeJSON w;i;c;⎕IO
     ⍝ Convert Unicode chars to \uXXXX
-      :Access public shared
       ⎕IO←0
       →0⍴⍨0∊i←⍸127<c←⎕UCS w
       w[i]←{⊂'\u','0123456789ABCDEF'[¯4↑16⊥⍣¯1⊢⍵]}¨c[i]
