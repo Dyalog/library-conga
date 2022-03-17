@@ -930,6 +930,7 @@
 
     ∇ r←table Lookup name
     ⍝ lookup a name/value-table value by name, return '∘???∘' if not found
+      :Access Public Shared
       r←table{(⍺[;2],⊂'∘???∘')⊃⍨⍺[;1](⍳ci)eis ⍵}name
     ∇
 
