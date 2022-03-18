@@ -763,7 +763,7 @@
     extractPath←{⍵↑⍨1⌈¯1+⊢/⍸'/'=⍵}∘,
     isChar←{1≥|≡⍵:0 2∊⍨10|⎕DR {⊃⍣(0∊⍴⍵)⊢⍵}⍵ ⋄ ∧/∇¨⍵}
     isSimpleChar←{1≥|≡⍵: isChar ⍵ ⋄ 0}
-    over←{⍺←⊢ ⋄ 0::(⍵⍵ ⍺)⍺⍺(⍵⍵ ⍵)⋄ ⍺ ⍺⍺⍥⍵⍵ ⍵}
+    over←{(⍵⍵ ⍺)⍺⍺(⍵⍵ ⍵)}
     isJSON←{~0 2∊⍨10|⎕DR ⍵:0 ⋄ ~(⊃⍵)∊'-{["',⎕D:0 ⋄ {0::0 ⋄1⊣0 ⎕JSON ⍵}⍵} ⍝ test for JSONableness fails on APL that looks like JSON (e.g. '"abc"')
     stopIf←{1∊⍵:-⎕TRAP←0 'C' '⎕←''Stopped for debugging... (Press Ctrl-Enter)''' ⋄ shy←0} ⍝ faster alternative to setting ⎕STOP
 
