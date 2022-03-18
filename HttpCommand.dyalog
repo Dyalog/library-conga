@@ -49,7 +49,7 @@
     ∇ r←Version
     ⍝ Return the current version
       :Access public shared
-      r←'HttpCommand' '4.0.6' '2022-03-17'
+      r←'HttpCommand' '4.0.7' '2022-03-18'
     ∇
 
     ∇ make
@@ -509,7 +509,7 @@
               Client←''                 ⍝ reset client
           :ElseIf ConxProps.(Host Port Secure certs)≢r.(Host Port Secure),⊂certs ⍝ something's changed, reset
           ⍝ don't set message for same domain
-              r.msg←(ConxProps.Host≢⍥{lc ¯2↑'.'(≠⊆⊢)⍵}r.Host)/'Connection properties changed, connection reset'
+              r.msg←(ConxProps.Host≢over{lc ¯2↑'.'(≠⊆⊢)⍵}r.Host)/'Connection properties changed, connection reset'
               {}{0::'' ⋄ LDRC.Close ⍵}Client
               Client←ConxProps←''
           :ElseIf 'Timeout'≢3⊃LDRC.Wait Client 0 ⍝ nothing changed, make sure client is alive
@@ -763,6 +763,7 @@
     extractPath←{⍵↑⍨1⌈¯1+⊢/⍸'/'=⍵}∘,
     isChar←{1≥|≡⍵:0 2∊⍨10|⎕DR {⊃⍣(0∊⍴⍵)⊢⍵}⍵ ⋄ ∧/∇¨⍵}
     isSimpleChar←{1≥|≡⍵: isChar ⍵ ⋄ 0}
+    over←{⍺←⊢ ⋄ 0::(⍵⍵ ⍺)⍺⍺(⍵⍵ ⍵)⋄ ⍺ ⍺⍺⍥⍵⍵ ⍵}
     isJSON←{~0 2∊⍨10|⎕DR ⍵:0 ⋄ ~(⊃⍵)∊'-{["',⎕D:0 ⋄ {0::0 ⋄1⊣0 ⎕JSON ⍵}⍵} ⍝ test for JSONableness fails on APL that looks like JSON (e.g. '"abc"')
     stopIf←{1∊⍵:-⎕TRAP←0 'C' '⎕←''Stopped for debugging... (Press Ctrl-Enter)''' ⋄ shy←0} ⍝ faster alternative to setting ⎕STOP
 
