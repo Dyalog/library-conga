@@ -21,9 +21,10 @@
     :field public Priority←'NORMAL:!CTYPE-OPENPGP' ⍝ GnuTLS priority string
     :field public PublicCertFile←''                ⍝ if not using an X509 instance, this is the client public certificate file
     :field public PrivateKeyFile←''                ⍝ if not using an X509 instance, this is the client private key file
-    :field public shared CongaRef←''               ⍝ user-supplied reference to Conga library
     :field public shared LDRC                      ⍝ HttpCommand-set reference to Conga after CongaRef has been resolved
     :field public shared CongaPath←''              ⍝ path to user-supplied conga workspace (assumes shared libraries are in the same path)
+    :field public shared CongaRef←''               ⍝ user-supplied reference to Conga library
+    :field public shared CongaVersion←''           ⍝ Conga major.minor version
 
 ⍝ Operational fields
     :field public SuppressHeaders←0                ⍝ set to 1 to suppress HttpCommand-supplied default request headers
@@ -42,21 +43,19 @@
     :field public readonly shared ValidFormUrlEncodedChars←'&=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~*+~%'
 
     :field Client←''                               ⍝ Conga client ID
-    :field CongaVersion←''                         ⍝ Conga version
     :field ConxProps←''                            ⍝ when a client is made, its connection properties are saved so that if either changes, we close the previous client
     :field origCert←¯1                             ⍝ used to check if Cert changed between calls
 
     ∇ r←Version
     ⍝ Return the current version
       :Access public shared
-      r←'HttpCommand' '4.0.7' '2022-03-18'
+      r←'HttpCommand' '4.0.10' '2022-03-28'
     ∇
 
     ∇ make
     ⍝ No argument constructor
       :Access public
       :Implements constructor
-      Result←initResult #.⎕NS''
     ∇
 
     ∇ make1 args;settings;invalid
@@ -74,7 +73,6 @@
           :EndIf
       :Else ⋄ 'Invalid constructor argument'⎕SIGNAL 11
       :EndSelect
-      Result←initResult #.⎕NS''
     ∇
 
     ∇ {ns}←initResult ns
@@ -98,6 +96,7 @@
     ⍝ Attempt to run the HTTP command
       :Access public
       RequestOnly←0⌈RequestOnly
+      Result←initResult #.⎕NS''
       :Trap Debug↓0
           r←(Cert SSLFlags Priority PublicCertFile PrivateKeyFile)(Command HttpCmd)URL Params Headers
       :Else ⍝ :Trap
@@ -267,7 +266,7 @@
                   :EndIf
               :EndIf
           :EndIf
-          CongaVersion←0.1⊥2↑LDRC.Version
+          CongaVersion←⊃(//)⎕VFI 1↓∊{'.',⍕⍵}¨2↑LDRC.Version
           LDRC.X509Cert.LDRC←LDRC ⍝ reset X509Cert.LDRC reference
      ∆END:
       :EndHold
@@ -341,7 +340,7 @@
      ∆FAIL:(rc secureParams)←¯1 msg ⍝ failure
     ∇
 
-    ∇ r←certs(cmd HttpCmd)args;url;parms;hdrs;urlparms;p;b;secure;port;host;path;auth;req;err;chunked;done;data;datalen;header;headerlen;rc;donetime;ind;len;obj;evt;dat;z;contentType;msg;timedOut;certfile;keyfile;simpleChar;defaultPort;cookies;domain;t;replace;outFile;toFile;startSize;options;congaPath;progress;starttime;outTn;secureParams
+    ∇ r←certs(cmd HttpCmd)args;url;parms;hdrs;urlparms;p;b;secure;port;host;path;auth;req;err;chunked;done;data;datalen;header;headerlen;rc;donetime;ind;len;obj;evt;dat;z;msg;timedOut;certfile;keyfile;simpleChar;defaultPort;cookies;domain;t;replace;outFile;toFile;startSize;options;congaPath;progress;starttime;outTn;secureParams
     ⍝ issue an HTTP command
     ⍝ certs - X509Cert|(PublicCertFile PrivateKeyFile) SSLValidation Priority PublicCertFile PrivateKeyFile
     ⍝ args  - [1] URL in format [HTTP[S]://][user:pass@]url[:port][/path[?query_string]]
@@ -435,12 +434,14 @@
           :Else    ⍝ not a GET or HEAD command
               ⍝↓↓↓ specify the default content type (if not already specified)
               :If ~SuppressHeaders
-                  contentType←(1+0∊⍴ContentType)⊃ContentType'application/x-www-form-urlencoded'
-                  hdrs←'Content-Type'(hdrs addHeader)contentType
+                  :If 0∊⍴ContentType
+                      'Content-Type'AddHeader'application/x-www-form-urlencoded'
+                  :Else
+                      'Content-Type'SetHeader ContentType
+                  :EndIf
               :EndIf
-              contentType←hdrs Lookup'Content-Type'
               simpleChar←{1<≢⍴⍵:0 ⋄ (⎕DR ⍵)∊80 82}parms
-              :Select ⊃';'(≠⊆⊢)contentType
+              :Select ⊃';'(≠⊆⊢) hdrs Lookup 'Content-Type'
               :Case 'application/x-www-form-urlencoded'
                   :If ~simpleChar ⍝ if not simple character...
                   :OrIf ~∧/parms∊ValidFormUrlEncodedChars ⍝ or not valid URL-encoded
@@ -464,8 +465,8 @@
           →∆EXIT
       :EndIf
      
-      :If (CongaVersion≥3.4)∧DOSLimit≠¯1 ⍝ did the user set DOSLimit?
-          {}LDRC.SetProp'.' 'DOSLimit'DOSLimit
+      :If DOSLimit≠¯1 ⍝ did the user set DOSLimit?
+          {{}LDRC.SetProp'.' 'DOSLimit' ⍵}DOSLimit
       :EndIf
      
       outTn←0
@@ -756,7 +757,6 @@
     fmtHeaders←{0∊⍴⍵:'' ⋄ (firstCaps¨⍵[;1])(,∘⍕¨⍵[;2])} ⍝ formatted HTTP headers
     firstCaps←{1↓{(¯1↓0,'-'=⍵) (819⌶)¨ ⍵}'-',⍵} ⍝ capitalize first letters e.g. Content-Encoding
     addHeader←{'∘???∘'≡⍺⍺ Lookup ⍺:⍺⍺⍪⍺ ⍵ ⋄ ⍺⍺} ⍝ add a header unless it's already defined
-    setHeader←{(≢⍺⍺)<i←⍺⍺(⍳ci)eis ⍺:⍺⍺⍪⍺ ⍵ ⋄ ⍺⍺⊣⍺⍺[i;2]←⊆,⍵}
     tableGet←{⍺[;2]/⍨⍺[;1](≡ ci)¨⊂⍵}
     endsWith←{∧/⍺=⍵↑⍨-≢⍺}
     beginsWith←{∧/⍺=⍵↑⍨≢⍺}
@@ -766,6 +766,7 @@
     over←{(⍵⍵ ⍺)⍺⍺(⍵⍵ ⍵)}
     isJSON←{~0 2∊⍨10|⎕DR ⍵:0 ⋄ ~(⊃⍵)∊'-{["',⎕D:0 ⋄ {0::0 ⋄1⊣0 ⎕JSON ⍵}⍵} ⍝ test for JSONableness fails on APL that looks like JSON (e.g. '"abc"')
     stopIf←{1∊⍵:-⎕TRAP←0 'C' '⎕←''Stopped for debugging... (Press Ctrl-Enter)''' ⋄ shy←0} ⍝ faster alternative to setting ⎕STOP
+    seconds←{86400÷⍵} ⍝ convert seconds to fractional day (for cookie max-age)
 
     ∇ r←JSONexport data
       :Trap 11
@@ -813,7 +814,7 @@
 
     ∇ idn←TStoIDN ts
     ⍝ Convert timestamp to extended IDN format
-      :Trap 2 ⍝ syntax error if pre-v18.0
+      :Trap 2 11 ⍝ syntax error if pre-v18.0, domain error if
           idn←¯1 1 ⎕DT⊂ts
       :Else
           idn←(2 ⎕NQ'.' 'DateToIDN'(3↑ts))+(24 60 60 1000⊥4↑3↓ts)÷86400000
@@ -853,7 +854,7 @@
                       →∆NEXT⍴⍨0∊⍴cookie.Expires←parseHttpDate value ⍝ ignore cookies with invalid expires dates
                   :EndIf
               :Case 'max-age' ⍝ specifies number of seconds after which cookie expires
-                  cookie.Expires←Now+TStoIDN 1899 12 31 0 0,toInt value
+                  cookie.Expires←Now+seconds toInt value
               :Case 'domain' ⍝ RCF 6265 Sec. 5.2.3
                   →∆NEXT⍴⍨0∊⍴domain←lc value ⍝ cookies with empty domain values are ignored
                   :If domain≡host
