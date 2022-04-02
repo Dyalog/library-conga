@@ -49,7 +49,7 @@
     ∇ r←Version
     ⍝ Return the current version
       :Access public shared
-      r←'HttpCommand' '4.0.10' '2022-03-28'
+      r←'HttpCommand' '4.0.12' '2022-04-02'
     ∇
 
     ∇ make
@@ -104,6 +104,15 @@
           r.(rc msg)←¯1('Unexpected ',⊃{⍺,' at ',⍵}/2↑⎕DMX.DM)
       :EndTrap
       setDisplayFormat r
+    ∇
+
+    ∇ r←Show;ro
+    ⍝ Show the request to be sent to the server
+      :Access public
+      ro←RequestOnly
+      RequestOnly←1
+      r←Run
+      RequestOnly←ro
     ∇
 
     ∇ {r}←setDisplayFormat r;rc;msg;stat;data
@@ -228,7 +237,12 @@
       :EndIf
     ∇
 
-    ∇ r←Init r;ref;root;nc;n;ns;congaCopied;class;path
+    ∇ r←Init
+      :Access Public
+      r←(Initialize initResult ⎕NS'').(rc msg)
+    ∇
+
+    ∇ r←Initialize r;ref;root;nc;n;ns;congaCopied;class;path
       ⍝↓↓↓ Check if LDRC exists (VALUE ERROR (6) if not), and is LDRC initialized? (NONCE ERROR (16) if not)
       :Hold 'HttpCommandInit'
           :If {6 16 999::1 ⋄ ''≡LDRC:1 ⋄ 0⊣LDRC.Describe'.'}''
@@ -268,6 +282,7 @@
           :EndIf
           CongaVersion←⊃(//)⎕VFI 1↓∊{'.',⍕⍵}¨2↑LDRC.Version
           LDRC.X509Cert.LDRC←LDRC ⍝ reset X509Cert.LDRC reference
+          r.rc←0
      ∆END:
       :EndHold
     ∇
@@ -292,7 +307,9 @@
               :EndIf
           :EndTrap
       :Case 9.2 ⍝ instance?  e.g. CongaRef←Conga.Init ''
-          LDRC←CongaRef ⍝ an instance is already initialized
+          :If 3=CongaRef.⎕NC'Clt' ⍝ if it looks like a valid Conga reference
+              LDRC←CongaRef ⍝ an instance is already initialized
+          :EndIf
       :Case 2.1 ⍝ variable?  e.g. CongaRef←'#.Conga'
           :Trap Debug↓0
               LDRC←ResolveCongaRef(⍎∊⍕CongaRef)
@@ -381,7 +398,7 @@
               →∆END↓⍨0∊⍴r.msg←(~⎕NEXISTS CongaPath)/'CongaPath "',CongaPath,'" does not exist'
               →∆END↓⍨0∊⍴r.msg←(1≠1 ⎕NINFO CongaPath)/'CongaPath "',CongaPath,'" is not a folder'
           :EndIf
-          →∆END↓⍨0∊⍴(Init r).msg
+          →∆END↓⍨0∊⍴(Initialize r).msg
       :EndIf
      
       url←,url
@@ -407,6 +424,10 @@
       :If 0∊⍴host ⋄ →∆END⊣r.msg←'No host specified' ⋄ :EndIf
      
       :If ~(port>0)∧(port≤65535)∧port=⌊port ⋄ →∆END⊣r.msg←'Invalid port - ',⍕port ⋄ :EndIf
+     
+      secure∨←⍲/{0∊⍴⍵}¨certs[1 4] ⍝ we're secure if URL begins with https/wss (checked by parseURL), or we have a cert or a PublicCertFile
+     
+      r.(Secure Host Port Path)←secure(lc host)port({{'/',¯1↓⍵/⍨⌽∨\'/'=⌽⍵}⍵↓⍨'/'=⊃⍵}path)
      
       hdrs←makeHeaders hdrs
       :If ~SuppressHeaders
@@ -435,13 +456,13 @@
               ⍝↓↓↓ specify the default content type (if not already specified)
               :If ~SuppressHeaders
                   :If 0∊⍴ContentType
-                      'Content-Type'AddHeader'application/x-www-form-urlencoded'
+                      hdrs←'Content-Type'(hdrs addHeader)'application/x-www-form-urlencoded'
                   :Else
-                      'Content-Type'SetHeader ContentType
+                      hdrs←'Content-Type'(hdrs setHeader)ContentType
                   :EndIf
               :EndIf
               simpleChar←{1<≢⍴⍵:0 ⋄ (⎕DR ⍵)∊80 82}parms
-              :Select ⊃';'(≠⊆⊢) hdrs Lookup 'Content-Type'
+              :Select ⊃';'(≠⊆⊢)hdrs Lookup'Content-Type'
               :Case 'application/x-www-form-urlencoded'
                   :If ~simpleChar ⍝ if not simple character...
                   :OrIf ~∧/parms∊ValidFormUrlEncodedChars ⍝ or not valid URL-encoded
@@ -465,9 +486,7 @@
           →∆EXIT
       :EndIf
      
-      :If DOSLimit≠¯1 ⍝ did the user set DOSLimit?
-          {{}LDRC.SetProp'.' 'DOSLimit' ⍵}DOSLimit
-      :EndIf
+      {{}LDRC.SetProp'.' 'DOSLimit'⍵}(1+DOSLimit=¯1)⊃DOSLimit,1000000
      
       outTn←0
       (outFile replace)←2↑{⍵,(≢⍵)↓'' 0}eis OutFile
@@ -491,8 +510,6 @@
           :EndTrap
       :EndIf
      
-      secure∨←⍲/{0∊⍴⍵}¨certs[1 4] ⍝ we're secure if URL begins with https/wss (checked by parseURL), or we have a cert or a PublicCertFile
-     
       :If secure
           :If 0≠⊃(rc secureParams)←CreateSecureParams certs
               →∆END⊣r.msg←secureParams
@@ -500,8 +517,6 @@
       :Else
           secureParams←''
       :EndIf
-     
-      r.(Secure Host Port Path)←secure(lc host)port({{'/',¯1↓⍵/⍨⌽∨\'/'=⌽⍵}⍵↓⍨'/'=⊃⍵}path)
      
       stopIf Debug=2
      
@@ -946,10 +961,14 @@
     ∇ name SetHeader value;ind
     ⍝ set a header value, overwriting any existing one
       :Access public
-      Headers←makeHeaders Headers
-      ind←Headers[;1](⍳ci)eis name
-      Headers↑⍨←ind⌈≢Headers
-      Headers[ind;]←name value
+      Headers←name(Headers setHeader)value
+    ∇
+
+    ∇ hdrs←name(hdrs setHeader)value;ind
+      hdrs←makeHeaders hdrs
+      ind←hdrs[;1](⍳ci)eis name
+      hdrs↑⍨←ind⌈≢hdrs
+      hdrs[ind;]←name value
     ∇
 
     ∇ RemoveHeader name
