@@ -672,7 +672,7 @@
       {}{0::⍬ ⋄ LDRC.Close⍣(~KeepAlive)⊢Client}⍬
      ∆EXIT:
     ∇
-  
+
     ∇ (timedOut donetime progress)←obj checkTimeOut(donetime progress);tmp;snap
     ⍝ check if request has timed out
       →∆EXIT↓⍨timedOut←⎕AI[3]>donetime
@@ -1039,29 +1039,48 @@
       r←'See https://github.com/Dyalog/HttpCommand'
     ∇
 
-    ∇ r←Upgrade;z;vers;url;repository
+    ∇ r←Upgrade;z;i;url;vers;h;u
     ⍝ loads the latest version from GitHub
       :Access public shared
-      repository←'HttpCommand' ⍝ eventually we won't need to fall back to library-conga
-     ∆TRY:
-      url←'https://raw.githubusercontent.com/Dyalog/',repository,'/master/HttpCommand.dyalog'
-      z←Get url
-      :If z.rc≠0
-          r←z.(rc msg)
-      :ElseIf (z.HttpStatus=404)∧repository≡'HttpCommand'
-          repository←'library-conga'
-          →∆TRY
-      :ElseIf z.HttpStatus≠200
-          r←¯1(⍕z)
-      :Else
+      :Trap Debug↓0
+     
+          url←'https://api.github.com/repos/Dyalog/HttpCommand/releases/latest'
+          z←GetJSON'get'url
+          :If z.(rc HttpStatus)≢0 200
+              r←¯1(⍕z)
+              →0
+          :EndIf
+     
+          i←z.Data.assets.name⍳⊂'HttpCommand.dyalog'
+     
+          :If i>≢z.Data.assets
+              r←¯1('No asset named "HttpCommand.dyalog" found in ',url)
+              →0
+          :EndIf
+          h←New'get'((i⊃z.Data.assets).browser_download_url)
+          h.MaxRedirections←0
+          z←h.Run
+          :If z.(rc HttpStatus)≢0 302 ⍝ we exprect a redirection
+              r←¯1(⍕z)
+              →0
+          :EndIf
+     
+          u←z.Headers Lookup'location'
+     
+          z←Get u
+          :If z.(rc HttpStatus)≢0 200
+              r←¯1(⍕z)
+              →0
+          :EndIf
+     
           {}LDRC.Close'.' ⍝ close Conga
           LDRC←''         ⍝ reset local reference so that Conga gets reloaded
           :Trap 0
-              vers←⍕¨(##.⎕FIX{⍵⊆⍨~⍵∊⎕UCS 13 10 65279}z.Data).Version Version
+              vers←⍕¨(##.⎕FIX{⍵⊆⍨~⍵∊⎕UCS 13 10 65279}'UTF-8' ⎕UCS ⎕UCS z.Data).Version Version
               r←0(deb⍕(1+≡/vers)⊃(⍕,'Upgraded to' 'from',⍪vers)('Already using the most current version: ',1⊃vers))
           :Else
               r←¯1('Could not ⎕FIX new HttpCommand: ',2↓∊': '∘,¨⎕DMX.(EM Message))
           :EndTrap
-      :EndIf
+      :EndTrap
     ∇
 :EndClass
