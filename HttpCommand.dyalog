@@ -1078,7 +1078,6 @@
           :Trap 0
               vers←⍕¨(##.⎕FIX{⍵⊆⍨~⍵∊⎕UCS 13 10 65279}'UTF-8' ⎕UCS ⎕UCS z.Data).Version Version
               r←0(deb⍕(1+≡/vers)⊃(⍕,'Upgraded to' 'from',⍪vers)('Already using the most current version: ',1⊃vers))
-              ⎕←'Run HttpCommand.Upgrade once more to upgrade to version 5 of HttpCommand'
           :Else
               r←¯1('Could not ⎕FIX new HttpCommand: ',2↓∊': '∘,¨⎕DMX.(EM Message))
           :EndTrap
