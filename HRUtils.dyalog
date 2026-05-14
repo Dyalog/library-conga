@@ -8,7 +8,7 @@
 ⍝   Please refer to the HTMLRenderer User Guide for more information
 
     ∇ r←Version
-      r←'HRUtils' '1.0' '2020-05-26'
+      r←'HRUtils' '1.1' '2026-05-13'
     ∇
 
     ⎕IO←⎕ML←1
@@ -85,7 +85,7 @@
         ∇ (page arguments)←baseUrl ParseUrl u;args
         ⍝ Parse the URL element from HTMLRenderer
           (page arguments)←'?'U.splitFirst u
-          page←U.UrlDecode{3↓⍵/⍨∨\'://'⍷⍵}page ⍝ drop off http{s}://
+          page←U.UrlDecode baseUrl{∨/'://'⍷⍺:⍵ ⋄ 3↓⍵/⍨∨\'://'⍷⍵}page ⍝ drop off http{s}:// if baseUrl doesn't have it
           page↓⍨←(≢baseUrl)×baseUrl U.begins page
           arguments←DecodeUrlArgs arguments
         ∇
@@ -305,8 +305,8 @@
         ∇ make args
           :Access public
           :Implements constructor
-
-        ∇   
+         
+        ∇
 
     :EndClass
 
